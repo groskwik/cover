@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 import os
+import argparse
 from pathlib import Path
 from PIL import Image
 from pdf2image import convert_from_path
+import matplotlib.pyplot as plt
 
-# CONFIG
-COVER_FILES = ["cover.png", "cover2.png"]   # priority order
-SCALE_RATIO = 0.50  # 60%, we can adjust later
-
+# ----------------------------------------------------------------------
+# FUNCTIONS
+# ----------------------------------------------------------------------
 def pick_pdf_from_current():
     pdfs = [f for f in os.listdir(".") if f.lower().endswith(".pdf")]
     if not pdfs:
@@ -27,58 +28,58 @@ def pick_pdf_from_current():
             pass
         print("Invalid choice, try again.")
 
-def find_cover_file():
-    for c in COVER_FILES:
-        if os.path.exists(c):
-            return c
-    print("No cover file found (expected cover.png or cover2.png).")
-    raise SystemExit(1)
-
 def pdf_first_page_to_image(pdf_path: str) -> Image.Image:
-    # convert first page only
     pages = convert_from_path(pdf_path, first_page=1, last_page=1)
-    return pages[0]  # PIL image
+    return pages[0]
 
 def place_in_center(base_img: Image.Image, overlay_img: Image.Image, scale_ratio: float) -> Image.Image:
     bw, bh = base_img.size
-    # scale overlay relative to base width
-    target_w = int(bw * scale_ratio)
-    # keep aspect ratio
     ow, oh = overlay_img.size
+
+    target_w = int(bw * scale_ratio)
     scale = target_w / ow
     target_h = int(oh * scale)
 
     overlay_resized = overlay_img.resize((target_w, target_h), Image.LANCZOS)
-
-    # center position
     x = (bw - target_w) // 2
     y = (bh - target_h) // 2
 
-    # paste – if overlay has no alpha, we just paste
     base_img.paste(overlay_resized, (x, y))
     return base_img
 
+# ----------------------------------------------------------------------
+# MAIN
+# ----------------------------------------------------------------------
 def main():
+    parser = argparse.ArgumentParser(description="Overlay first page of a PDF onto a cover image.")
+    parser.add_argument("--ratio", type=float, default=0.5, help="Scale ratio (default = 0.5)")
+    parser.add_argument("--cover", type=str, default="cover.png", help="Cover image file (default = cover.png)")
+    args = parser.parse_args()
+
     pdf_name = pick_pdf_from_current()
-    cover_file = find_cover_file()
+
+    if not os.path.exists(args.cover):
+        print(f"Cover file '{args.cover}' not found.")
+        raise SystemExit(1)
 
     print(f"Using PDF: {pdf_name}")
-    print(f"Using cover file: {cover_file}")
+    print(f"Using cover file: {args.cover}")
+    print(f"Scale ratio: {args.ratio}")
 
-    # load base cover
-    base = Image.open(cover_file).convert("RGB")
-
-    # extract first page
+    base = Image.open(args.cover).convert("RGB")
     page_img = pdf_first_page_to_image(pdf_name).convert("RGB")
+    out_img = place_in_center(base, page_img, args.ratio)
 
-    # compose
-    out_img = place_in_center(base, page_img, SCALE_RATIO)
-
-    # output name = pdf name but .png
     out_name = Path(pdf_name).with_suffix(".png").name
     out_img.save(out_name, "PNG")
+
     print(f"Saved: {out_name}")
+
+    # show image inside Python
+    plt.imshow(out_img)
+    plt.axis("off")
+    plt.title(f"{out_name} (ratio={args.ratio})")
+    plt.show()
 
 if __name__ == "__main__":
     main()
-
