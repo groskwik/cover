@@ -1,52 +1,71 @@
-# 📘 Cover Generator Scripts
+# 📘 Cover Generator — PDF to Custom Cover Image
 
-This repository provides two Python utilities for automatically generating **custom cover images** from PDF files.  
-Each script extracts the **first page** of a PDF, scales it, and overlays it onto a predefined **cover image** (e.g. `cover.png` or `cover2.png`).
+This repository contains Python utilities for generating **custom cover images** from PDF files.  
+The primary script (`cover.py`) now includes **smart PDF search**, **multiple library folders**, optional **preview display**, and improved scaling.
 
 ---
 
-## 🧩 Scripts Overview
+## 🧩 Overview
 
-### 1. `cover.py`
-Interactive version — for creating a single cover.
+### ✔ `cover.py`
+Interactive tool to generate a **single cover image** by:
 
-**Features:**
-- Asks you to choose a PDF from the current folder  
-- Extracts the first page of the selected PDF  
-- Places it in the center of a base cover image (`cover.png` by default)  
-- Scales the overlay by a given ratio (default **0.5**)  
-- Displays the resulting image in a Python window  
-- Saves the final PNG file using the same name as the PDF (e.g. `manual.pdf` → `manual.png`)
+- Searching PDFs in multiple predefined folders  
+- Extracting the **first page** of a selected PDF  
+- Scaling the PDF page and placing it centered on a base cover image  
+- Saving the final output as a `.png` file  
+- Optionally displaying the result with `matplotlib`
 
-**Example usage:**
+This updated script is ideal for eBay manual production, keeping your workflow extremely fast.
+
+---
+
+## 📂 PDF Search Behavior
+
+The script automatically searches for PDFs inside these folders:
+
+```
+C:\Users\benoi\Downloads\ebay_manuals
+C:\Users\benoi\Downloads\manuals
+```
+
+**How search works:**
+
+1. You type part of the filename:  
+   ```
+   hp41
+   ```
+2. The script finds all matching PDFs across both folders.
+3. If multiple results exist, you can choose the correct one.
+4. If only one match exists, it is used automatically.
+
+---
+
+## 🚀 Usage
+
+### Basic usage
 ```
 python cover.py
 ```
 
-**With custom options:**
+### With custom cover image
 ```
-python cover.py --cover cover2.png --ratio 0.45
-```
-
----
-
-### 2. `batch_cover.py`
-Batch version — for processing multiple PDFs automatically.
-
-**Features:**
-- Processes **all PDFs** in a specified folder (default = current folder)  
-- Uses a single base cover (`cover.png` by default)  
-- Applies the same scale ratio to all  
-- Saves one `.png` output per `.pdf`
-
-**Example usage:**
-```
-python batch_cover.py
+python cover.py --cover cover2.png
 ```
 
-**With options:**
+### With custom scaling ratio
 ```
-python batch_cover.py --folder ./manuals --cover cover2.png --ratio 0.55
+python cover.py --ratio 0.45
+```
+
+### Show the preview in a window
+```
+python cover.py --show
+```
+
+### Full example
+```
+python cover.py --cover white_cover.png --ratio 0.55 --show
 ```
 
 ---
@@ -54,75 +73,99 @@ python batch_cover.py --folder ./manuals --cover cover2.png --ratio 0.55
 ## ⚙️ Command-Line Options
 
 | Option | Description | Default |
-|--------|--------------|----------|
-| `--cover` | Path to the base cover image | `cover.png` |
-| `--ratio` | Scale ratio of the inserted PDF page (0–1) | `0.5` |
-| `--folder` | *(batch only)* Folder containing PDFs | `.` |
+|--------|-------------|---------|
+| `--cover` | Base cover image (PNG/JPG/etc.) | `cover.png` |
+| `--ratio` | Width ratio of the PDF relative to cover (0–1) | `0.5` |
+| `--show` | Display the final image using matplotlib | *off* |
 
 ---
 
-## 📦 Requirements
+## 🧠 How It Works (Internals)
 
-Install required Python libraries:
+### 1️⃣ `find_pdf()`
+Searches all PDFs in the configured folders, using case-insensitive substring matching.
+
+### 2️⃣ `pdf_first_page_to_image()`
+Converts the first page of the PDF to an RGB image (via `pdf2image`).
+
+### 3️⃣ `place_in_center()`
+- Scales the PDF page to `(cover_width × ratio)`
+- Preserves original PDF aspect ratio  
+- Centers it perfectly on the base image
+
+### 4️⃣ Output
+For input:
+```
+my_manual.pdf
+```
+You get:
+```
+my_manual.png
+```
+
+---
+
+## 📦 Installation Requirements
+
+Install Python dependencies:
+
 ```
 pip install pillow pdf2image matplotlib
 ```
 
-### Poppler installation
+### Poppler (REQUIRED for pdf2image)
 
-`pdf2image` requires **Poppler** (for PDF rendering).  
+#### Windows
+Download:  
+https://github.com/oschwartz10612/poppler-windows/releases/
 
-- **Windows:**  
-  Download the latest release from [Poppler for Windows](https://github.com/oschwartz10612/poppler-windows/releases/),  
-  extract it, and add the `bin/` folder to your system `PATH`.
+Extract → add the `bin` folder to your PATH.
 
-- **Linux (Debian/Ubuntu):**
-  ```
-  sudo apt install poppler-utils
-  ```
+#### Linux (Debian/Ubuntu)
+```
+sudo apt install poppler-utils
+```
 
-- **macOS:**
-  ```
-  brew install poppler
-  ```
+#### macOS
+```
+brew install poppler
+```
 
 ---
 
-## 🖼️ Output Example
+## 🖼 Example Workflow
 
-If your folder contains:
+If you have:
 
 ```
 cover.png
-manual1.pdf
-manual2.pdf
+HP41CX Manual.pdf
 ```
 
-Running:
+Run:
+
 ```
-python batch_cover.py
+python cover.py --ratio 0.52 --show
 ```
 
-Produces:
-```
-manual1.png
-manual2.png
-```
+Output:
 
-Each image shows the first page of the PDF centered on `cover.png`.
+```
+HP41CX Manual.png
+```
 
 ---
 
 ## 🧰 Notes
 
-- The ratio defines how wide the inserted PDF page appears relative to the base cover width  
-- The composition maintains the original aspect ratio of the PDF page  
-- You can use any image format for the cover (PNG, JPG, etc.)  
-- The scripts always output PNG files  
+- You can use any image format for the cover (PNG/JPG/WebP/etc.)  
+- The script **never modifies** your original cover image  
+- PDF page aspect ratio is fully preserved  
+- Output always uses the same name as the PDF  
+- Works perfectly for eBay listings, LightScribe discs, or binder covers  
 
 ---
 
 ## 📄 License
 
-MIT License © 2025 — Free for personal and commercial use.  
-Attribution appreciated but not required.
+MIT License © 2025 — free for commercial and personal use.
